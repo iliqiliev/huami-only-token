@@ -193,7 +193,7 @@ class HuamiAmazfit:
         return _wearables
 
     @staticmethod
-    def get_firmware(_wearable: dict) -> Iterator[Tuple[str, str]]:
+    def get_firmware(_wearable: dict) -> Tuple[str, str]:
         """Check and download updates for the furmware and fonts"""
         fw_url = urls.URLS["fw_updates"]
         params = urls.PAYLOADS["fw_updates"]
@@ -219,8 +219,7 @@ class HuamiAmazfit:
             links.append(fw_response['fontUrl'])
             hashes.append(fw_response['fontMd5'])
 
-        for link, hash_sum in zip(links, hashes):
-            yield link, hash_sum
+        return (links, hashes)
 
     def get_gps_data(self) -> None:
         """Download GPS packs: almanac and AGPS"""
@@ -347,36 +346,24 @@ if __name__ == "__main__":
               "I am not responsible for any problems that might arise.")
         answer = input("Do you want to proceed? [yes/no] ")
         if answer.lower() in ['yes', 'y', 'ye']:
-            wearable_id = input("ID of the device to check for updates (-1 for all of them): ")
-            if wearable_id == "-1":
-                print("Be extremely careful with downloaded files!")
-                for idx, wearable in enumerate(wearables):
+            wearable_id = int(input("ID of the device to check for updates (-1 for all of them): "))
+            print("Be extremely careful with downloaded files!")
+
+            for idx, wearable in enumerate(wearables):
+                if idx == wearable_id or wearable_id == -1:
                     print(f"\n\u2553\u2500\u2500\u2500Device {idx}")
-                    for link, hash_sum in device.get_firmware(wearable):
-                        if link and hash_sum:
+                    links, hashes = device.get_firmware(wearables[int(idx)])
+                    if links:
+                        for link, hash_sum in zip(links, hashes):
                             file_name = link.split('/')[-1]
                             print(f"\u2551  File: {file_name}")
                             print(f"\u2551  Hash: {hash_sum}")
                             with requests.get(link, stream=True) as r:
                                 with open(file_name, 'wb') as f:
                                     shutil.copyfileobj(r.raw, f)
-                        else:
-                            print(f"\u2551  No updates found")
-                    print(footer)
-
-            elif int(wearable_id) in range(0, len(wearables)):
-                print(f"\n\u2553\u2500\u2500\u2500Device {wearable_id}")
-                for link, hash_sum in device.get_firmware(wearables[int(wearable_id)]):
-                    if link and hash_sum:
-                        file_name = link.split('/')[-1]
-                        print(f"\u2551  File: {file_name}")
-                        print(f"\u2551  Hash: {hash_sum}")
-                        with requests.get(link, stream=True) as r:
-                            with open(file_name, 'wb') as f:
-                                shutil.copyfileobj(r.raw, f)
                     else:
                         print(f"\u2551  No updates found")
-                print(footer)
+                    print(footer)
 
     if args.no_logout:
         print("\nNo logout!")
