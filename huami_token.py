@@ -23,9 +23,9 @@ import getpass
 import json
 import random
 import shutil
-import urllib
+import urllib.parse
 import uuid
-from typing import Iterator, Tuple
+from typing import Tuple, Dict, Union, Any, List
 import zipfile
 import zlib
 
@@ -34,31 +34,35 @@ import requests
 import errors
 import urls
 
-def encode_uint32(value) -> bytes:
-    return bytes([value & 0xff]) + bytes([(value >> 8) & 0xff]) + bytes([(value >> 16) & 0xff]) + bytes([(value >> 24) & 0xff]);
+def encode_uint32(value: int) -> bytes:
+    """Convert 4-bytes value into a list with 4 bytes"""
+    return bytes([value & 0xff]) + bytes([(value >> 8) & 0xff]) + \
+        bytes([(value >> 16) & 0xff]) + bytes([(value >> 24) & 0xff])
 
 class HuamiAmazfit:
     """Base class for logging in and receiving auth keys and GPS packs"""
-    def __init__(self, method="amazfit", email=None, password=None):
+    def __init__(self, method: str = "amazfit", email: str = "", password: str = "") -> None:
 
         if method == 'amazfit' and (not email or not password):
             raise ValueError("For Amazfit method E-Mail and Password can not be null.")
-        self.method = method
-        self.email = email
-        self.password = password
-        self.access_token = None
-        self.country_code = None
+        self.method: str = method
+        self.email: str = email
+        self.password: str = password
+        self.access_token: str = ""
+        self.country_code: str = ""
 
-        self.app_token = None
-        self.login_token = None
-        self.user_id = None
+        self.app_token: str = ""
+        self.login_token: str = ""
+        self.user_id: str = ""
 
         self.r = str(uuid.uuid4())
 
         # IMEI or something unique
-        self.device_id = "02:00:00:%02x:%02x:%02x" % (random.randint(0, 255),
-                                                      random.randint(0, 255),
-                                                      random.randint(0, 255))
+        self.device_id = (
+            f"02:00:00:{random.randint(0, 255):02x}:{random.randint(0, 255):02x}:"
+            f"{random.randint(0, 255):02x}"
+        )
+
 
     def get_access_token(self) -> str:
         """Get access token for log in"""
@@ -76,7 +80,7 @@ class HuamiAmazfit:
             if 'code' not in token_url_parameters:
                 raise ValueError("No 'code' parameter in login url.")
 
-            self.access_token = token_url_parameters['code']
+            self.access_token = token_url_parameters['code'][0]
             self.country_code = 'US'
 
         elif self.method == 'amazfit':
@@ -86,12 +90,12 @@ class HuamiAmazfit:
             data = urls.PAYLOADS['tokens_amazfit']
             data['password'] = self.password
 
-            response = requests.post(auth_url, data=data, allow_redirects=False)
+            response = requests.post(auth_url, data=data, allow_redirects=False, timeout=10)
             response.raise_for_status()
 
             # 'Location' parameter contains url with login status
             redirect_url = urllib.parse.urlparse(response.headers.get('Location'))
-            redirect_url_parameters = urllib.parse.parse_qs(redirect_url.query)
+            redirect_url_parameters = urllib.parse.parse_qs(str(redirect_url.query))
 
             if 'error' in redirect_url_parameters:
                 raise ValueError(f"Wrong E-mail or Password." \
@@ -108,26 +112,26 @@ class HuamiAmazfit:
                 self.country_code = region[0:2].upper()
 
             else:
-                self.country_code = redirect_url_parameters['country_code']
+                self.country_code = redirect_url_parameters['country_code'][0]
 
-            self.access_token = redirect_url_parameters['access']
+            self.access_token = redirect_url_parameters['access'][0]
         return self.access_token
 
-    def login(self, external_token=None) -> None:
+    def login(self, external_token: str = "") -> str:
         """Perform login and get app and login tokens"""
         if external_token:
             self.access_token = external_token
 
         login_url = urls.URLS['login_amazfit']
 
-        data = urls.PAYLOADS['login_amazfit']
+        data: Dict[str, str] = urls.PAYLOADS['login_amazfit']
         data['country_code'] = self.country_code
         data['device_id'] = self.device_id
         data['third_name'] = 'huami' if self.method == 'amazfit' else 'mi-watch'
         data['code'] = self.access_token
         data['grant_type'] = 'access_token' if self.method == 'amazfit' else 'request_token'
 
-        response = requests.post(login_url, data=data, allow_redirects=False)
+        response = requests.post(login_url, data=data, allow_redirects=False, timeout=10)
         response.raise_for_status()
         login_result = response.json()
 
@@ -154,7 +158,7 @@ class HuamiAmazfit:
         self.user_id = token_info['user_id']
         return self.user_id
 
-    def get_wearables(self) -> dict:
+    def get_wearables(self) -> List[Dict[str, Any]]:
         """Request a list of linked devices"""
         devices_url = urls.URLS['devices'].format(user_id=urllib.parse.quote(self.user_id))
 
@@ -162,7 +166,7 @@ class HuamiAmazfit:
         headers['apptoken'] = self.app_token
         params = {'enableMultiDevice': 'true'}
 
-        response = requests.get(devices_url, params=params, headers=headers)
+        response = requests.get(devices_url, params=params, headers=headers, timeout=10)
         response.raise_for_status()
         device_request = response.json()
         if 'items' not in device_request:
@@ -198,10 +202,10 @@ class HuamiAmazfit:
         return _wearables
 
     @staticmethod
-    def get_firmware(_wearable: dict) -> Tuple[str, str]:
+    def get_firmware(_wearable: Dict[str, str]) -> Tuple[List[str], List[str]]:
         """Check and download updates for the furmware and fonts"""
         fw_url = urls.URLS["fw_updates"]
-        params = urls.PAYLOADS["fw_updates"]
+        params: Dict[str, Union[str, Any]] = urls.PAYLOADS["fw_updates"]
         params['deviceSource'] = _wearable['device_source']
         params['firmwareVersion'] = _wearable['firmware_version']
         params['hardwareVersion'] = _wearable['hardware_version']
@@ -211,20 +215,20 @@ class HuamiAmazfit:
             'appname': 'com.huami.midong',
             'lang': 'en_US'
         }
-        response = requests.get(fw_url, params=params, headers=headers)
+        response = requests.get(fw_url, params=params, headers=headers, timeout=10)
         response.raise_for_status()
         fw_response = response.json()
-        links = []
-        hashes = []
+        fw_links = []
+        fw_hashes = []
 
         if 'firmwareUrl' in fw_response:
-            links.append(fw_response['firmwareUrl'])
-            hashes.append(fw_response['firmwareMd5'])
+            fw_links.append(fw_response['firmwareUrl'])
+            fw_hashes.append(fw_response['firmwareMd5'])
         if 'fontUrl' in fw_response:
-            links.append(fw_response['fontUrl'])
-            hashes.append(fw_response['fontMd5'])
+            fw_links.append(fw_response['fontUrl'])
+            fw_hashes.append(fw_response['fontMd5'])
 
-        return (links, hashes)
+        return (fw_links, fw_hashes)
 
     def get_gps_data(self) -> None:
         """Download GPS packs: almanac and AGPS"""
@@ -237,51 +241,58 @@ class HuamiAmazfit:
 
         for pack_idx, agps_pack_name in enumerate(agps_packs):
             print(f"Downloading {agps_pack_name}...")
-            response = requests.get(agps_link.format(pack_name=agps_pack_name), headers=headers)
+            response = requests.get(agps_link.format(pack_name=agps_pack_name),
+                headers=headers, timeout=10)
             response.raise_for_status()
             agps_result = response.json()[0]
             if 'fileUrl' not in agps_result:
                 raise ValueError("No 'fileUrl' parameter in files request.")
-            with requests.get(agps_result['fileUrl'], stream=True) as request:
+            with requests.get(agps_result['fileUrl'], stream=True, timeout=10) as request:
                 with open(agps_file_names[pack_idx], 'wb') as gps_file:
                     shutil.copyfileobj(request.raw, gps_file)
 
     def build_gps_uihh(self) -> None:
+        """ Prepare uihh gps file """
         print("Building gps_uihh.bin")
-        d = {'gps_alm.bin':0x05, 'gln_alm.bin':0x0f, 'lle_bds.lle':0x86, 'lle_gps.lle':0x87, 'lle_glo.lle':0x88, 'lle_gal.lle':0x89, 'lle_qzss.lle':0x8a}
-        cep_archive = zipfile.ZipFile('cep_7days.zip', 'r')
-        lle_archive = zipfile.ZipFile('lle_1week.zip', 'r')
-        f = open('gps_uihh.bin', 'wb')
-        content = bytes()
-        filecontent = bytes()
-        fileheader = bytes()
+        d = {'gps_alm.bin':0x05, 'gln_alm.bin':0x0f, 'lle_bds.lle':0x86, 'lle_gps.lle':0x87,
+             'lle_glo.lle':0x88, 'lle_gal.lle':0x89, 'lle_qzss.lle':0x8a}
+        with zipfile.ZipFile('cep_7days.zip', 'r') as cep_archive, \
+            zipfile.ZipFile('lle_1week.zip', 'r') as lle_archive, \
+            open('gps_uihh.bin', 'wb') as uihh_file:
+            content = bytes()
+            filecontent = bytes()
+            fileheader = bytes()
 
-        for key, value in d.items():
-            if value >= 0x86:
-                filecontent = lle_archive.read(key)
-            else:
-                filecontent = cep_archive.read(key)
+            for key, value in d.items():
+                if value >= 0x86:
+                    filecontent = lle_archive.read(key)
+                else:
+                    filecontent = cep_archive.read(key)
 
-            fileheader = bytes([1]) + bytes([value]) + encode_uint32(len(filecontent)) + encode_uint32(zlib.crc32(filecontent) & 0xffffffff)
-            content += fileheader + filecontent
+                fileheader = bytes([1]) + bytes([value]) + encode_uint32(len(filecontent)) + \
+                    encode_uint32(zlib.crc32(filecontent) & 0xffffffff)
+                content += fileheader + filecontent
 
-        header = b'UIHH' + bytes([0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01]) + encode_uint32(zlib.crc32(content) & 0xffffffff) + \
-            bytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00]) + encode_uint32(len(content)) + bytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+            header = b'UIHH' + \
+                bytes([0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01]) + \
+                encode_uint32(zlib.crc32(content) & 0xffffffff) + \
+                bytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00]) + \
+                encode_uint32(len(content)) + \
+                bytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
 
-        content = header + content
-        f.write(content)
-        f.close()
+            content = header + content
+            uihh_file.write(content)
 
-    def logout(self) -> None:
+    def logout(self) -> str:
         """Log out from the current account"""
         logout_url = urls.URLS['logout']
 
         data = urls.PAYLOADS['logout']
         data['login_token'] = self.login_token
 
-        response = requests.post(logout_url, data=data)
-        logout_result = response.json()['result']
-        return logout_result
+        response = requests.post(logout_url, data=data, timeout=10)
+        result = str(response.json()['result'])
+        return result
 
 
 if __name__ == "__main__":
@@ -382,7 +393,7 @@ if __name__ == "__main__":
             print("Be extremely careful with downloaded files!")
 
             for idx, wearable in enumerate(wearables):
-                if idx == wearable_id or wearable_id == -1:
+                if wearable_id in (idx, -1):
                     print(f"\n\u2553\u2500\u2500\u2500Device {idx}")
                     links, hashes = device.get_firmware(wearables[int(idx)])
                     if links:
@@ -390,11 +401,11 @@ if __name__ == "__main__":
                             file_name = link.split('/')[-1]
                             print(f"\u2551  File: {file_name}")
                             print(f"\u2551  Hash: {hash_sum}")
-                            with requests.get(link, stream=True) as r:
+                            with requests.get(link, stream=True, timeout=10) as r:
                                 with open(file_name, 'wb') as f:
                                     shutil.copyfileobj(r.raw, f)
                     else:
-                        print(f"\u2551  No updates found")
+                        print("\u2551  No updates found")
                     print(footer)
 
     if args.no_logout:
