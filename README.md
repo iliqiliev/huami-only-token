@@ -17,6 +17,11 @@ It will also download AGPS data packs `cep_alm_pak.zip` and `cep_7days.zip`.
 To use new versions of Amazfit and Xiaomi watches and bands with Gadgetbridge you need special unique key.
 Read more here: https://codeberg.org/Freeyourgadget/Gadgetbridge/wiki/Huami-Server-Pairing.
 
+## Community
+
+If you would like to get in touch 
+* Matrix: [`#huami-token:matrix.org`](https://matrix.to/#/#huami-token:matrix.org)
+
 ## Preparation
 
 1. Ensure that you login in Amazfit App with Amazfit or Xiaomi account --
