@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "huami_token"
-version = "0.7"
+version = "0.7.0"
 authors = [
   { name="Kirill Snezhko", email="kirill.snezhko@pm.me" },
 ]
