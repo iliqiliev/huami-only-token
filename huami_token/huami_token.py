@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-# pylint: disable=too-many-instance-attributes
-# pylint: disable=invalid-name
+# pylint: disable=too-many-instance-attributes, too-many-branches
+# pylint: disable=invalid-name,  too-many-statements, too-many-locals
+# pylint: disable=too-many-nested-blocks
 # Copyright (c) 2020 Kirill Snezhko
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -31,8 +32,7 @@ import zlib
 
 import requests
 
-import errors
-import urls
+from . import errors, urls
 
 def encode_uint32(value: int) -> bytes:
     """Convert 4-bytes value into a list with 4 bytes"""
@@ -295,7 +295,8 @@ class HuamiAmazfit:
         return result
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """ Main Entry Point """
     parser = argparse.ArgumentParser(description="Obtain Bluetooth Auth key from Amazfit "
                                                  "servers and download AGPS data.")
     parser.add_argument("-m",
@@ -417,3 +418,7 @@ if __name__ == "__main__":
             print("\nLogged out.")
         else:
             print("\nError logging out.")
+
+
+if __name__ == "__main__":
+    main()

@@ -8,3 +8,4 @@ __pycache__
 *.bin
 venv
 .mypy_cache
+dist
