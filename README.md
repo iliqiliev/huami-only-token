@@ -45,11 +45,13 @@ optional arguments:
 ```
 
 ## Logging in with Amazfit account
-Run script with your credentials: `python huami_token.py --email {YOUR EMAIL HERE} -- password {YOUR PASSWORD HERE} --bt_keys`.
+Run script with your credentials:
+
+`python huami_token.py --email {YOUR EMAIL HERE} -- password {YOUR PASSWORD HERE} --bt_keys`.
 
 Sample output:
 ```bash
-> python3 huami_token.py --email my_email --password password --bt_keys
+> python huami_token.py --email name@example.com -- password 123456 --bt_keys
 Getting access token with amazfit login method...
 Token: ['UaFHW53RJVYwqXaa7ncPQ']
 Logging in...
