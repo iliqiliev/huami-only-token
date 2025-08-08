@@ -1,5 +1,5 @@
 # huami-only-token
-Forked from huami-token by argrento. Click button bellow to visit his repo.
+Forked from huami-token by `argrento`. Click button bellow to visit his repo.
 
 <a href="https://codeberg.org/argrento/huami-token/">
     <img alt="Get it on Codeberg" src="https://get-it-on.codeberg.org/get-it-on-white-on-black.png" height="60">
