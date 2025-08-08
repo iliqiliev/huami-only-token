@@ -1,34 +1,30 @@
-# Huami-token
+# huami-only-token
+Forked from huami-token by argrento. Click button bellow to visit his repo.
 
-[![status-badge](https://ci.codeberg.org/api/badges/argrento/huami-token/status.svg)](https://ci.codeberg.org/argrento/huami-token)
-
-Script to obtain watch or band bluetooth access token from Huami servers.
-It will also download AGPS data packs `cep_alm_pak.zip` and `cep_7days.zip`.
+<a href="https://codeberg.org/argrento/huami-token/">
+    <img alt="Get it on Codeberg" src="https://get-it-on.codeberg.org/get-it-on-white-on-black.png" height="60">
+</a>
 
 ## About
 
 To use new versions of Amazfit watches and bands with Gadgetbridge you need special unique key.
-Read more here: https://codeberg.org/Freeyourgadget/Gadgetbridge/wiki/Huami-Server-Pairing.
 
-## Community
-
-If you would like to get in touch 
-* Matrix: [`#huami-token:matrix.org`](https://matrix.to/#/#huami-token:matrix.org)
+Read more here: [gadgetbridge.org/basics/pairing/huami-xiaomi-server](https://gadgetbridge.org/basics/pairing/huami-xiaomi-server/)
 
 ## Preparation
 
-1. Ensure that you login in Amazfit App with Amazfit account --
-because only this login methods are supported. If not, create new Amazfit account
-with e-mail and password.
-2. Pair, sync and update your watch with Amazfit App. Your pairing key will be stored on
-Huami servers.
-3. `pip3 install huami_token`
-4. Use like this: `python3 -m huami_token ...`
+1. Ensure that you login in Amazfit App with Amazfit account.
+If not, create new Amazfit account with e-mail and password.
+2. Pair, sync and update your watch with Amazfit App. Your pairing key will be stored on Huami servers.
+3. Clone this repo.
+4. Create a python virtual environment inside.
+5. Install dependencies from `requirements.txt`.
+6. Use like this: `python huami_token.py --email {YOUR EMAIL HERE} -- password {YOUR PASSWORD HERE} --all`
 
 ## Usage
 ```
-usage: huami_token.py [-h] [-e EMAIL] [-p PASSWORD] [-b]
-                      [-g] [-a] [-n]
+usage: huami_token.py [-h] [-e EMAIL] [-p PASSWORD]
+                      [-b] [-g] [-a] [-n]
 
 Obtain Bluetooth Auth key from Amazfit servers and download AGPS data.
 
@@ -48,9 +44,8 @@ optional arguments:
                         token and access token
 ```
 
-
 ## Logging in with Amazfit account
-Run script with your credentials: `python3 huami_token.py --email youemail@example.com --password your_password --bt_keys`.
+Run script with your credentials: `python huami_token.py --email {YOUR EMAIL HERE} -- password {YOUR PASSWORD HERE} --bt_keys`.
 
 Sample output:
 ```bash
@@ -86,16 +81,7 @@ the table above.
 Use the downloaded files at your own risk!
 
 ## Dependencies
+This has been tested to work with Python 3.13.
 
-* Python 3.7.7
-* argparse
 * requests
-* urllib
-* random
-* uuid
-* json
-* shutil
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+* types-requests
